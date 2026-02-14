@@ -1,32 +1,34 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using DefaultNamespace;
 using UnityEngine;
 
 public class Example : MonoBehaviour
 {
     [SerializeField] private MeshRenderer _a;
+    [SerializeField] private Vector3 _aPivotOffset;
     [SerializeField] private MeshRenderer _b;
-    [SerializeField] private Transform _lineA;
-    [SerializeField] private Transform _lineB;
+    [SerializeField] private Transform[] _linePoints;
     
     private void Update()
     {
         var aBounds = _a.bounds;
+        aBounds.center = Vector3.zero;
         var bBounds = _b.bounds;
-        
-        // print(AABBUtility.Intersects(aBounds.min, aBounds.max, bBounds.min, bBounds.max));
-        var result = AABBUtility.IntersectMovingAABB(aBounds.min, aBounds.max, bBounds.min, bBounds.max, _lineA.position, _lineB.position);
 
-        Debug.DrawLine(_lineA.position, _lineB.position, Color.yellow);
+        var points = _linePoints.Select(p => p.position).ToArray();
+
+        for (var i = 0; i < points.Length - 1; i++)
+            Debug.DrawLine(points[i], points[i + 1], Color.yellow);    
         
-        if (!result.wasHit)
+        if (!AABBUtility.IntersectsAlongPolyline(aBounds.min, aBounds.max, _aPivotOffset, bBounds.min, bBounds.max, points, out var hitInfo))
             print(false);
         else
         {
-            print($"true {result.tEnter} {result.point}");
-            var intersectBounds = new Bounds(result.point, aBounds.size);
+            print($"true {hitInfo.normalizedDistance} {hitInfo.collisionPoint}");
+            var intersectBounds = new Bounds(hitInfo.collisionPoint, aBounds.size);
             DrawWireAABB(intersectBounds.min, intersectBounds.max);
         }
     }
