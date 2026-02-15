@@ -4,31 +4,31 @@ namespace DefaultNamespace
 {
     public static class AABBUtility
     {
-        public static HitInfo IntersectMovingAABBWithOffset(Vector3 aMin, Vector3 aMax, Vector3 bMin, Vector3 bMax, 
-            Vector3 lineStart, Vector3 lineEnd, Vector3 pivotOffset)
+        public static HitInfo CheckIntersection(Vector3 syringeMin, Vector3 syringeMax, Vector3 syringePivotOffset, Vector3 laserMin, 
+            Vector3 laserMax, Vector3 lineStart, Vector3 lineEnd)
         {
-            HitInfo result = new HitInfo
+            var result = new HitInfo
             {
                 wasHit = false,
                 normalizedDistance = 0f,
                 collisionPoint = Vector3.zero
             };
 
-            Vector3 d = lineEnd - lineStart;
-            Vector3 centerStart = lineStart - pivotOffset;
-            Vector3 worldAMin = aMin + centerStart;
-            Vector3 worldAMax = aMax + centerStart;
+            var d = lineEnd - lineStart;
+            var centerStart = lineStart - syringePivotOffset;
+            var worldAMin = syringeMin + centerStart;
+            var worldAMax = syringeMax + centerStart;
 
-            float tEnter = 0f;
-            float tExit  = 1f;
+            var tEnter = 0f;
+            var tExit  = 1f;
 
-            if (!AxisCheck(worldAMin.x, worldAMax.x, bMin.x, bMax.x, d.x, ref tEnter, ref tExit))
+            if (!CheckIntersectionByAxis(worldAMin.x, worldAMax.x, laserMin.x, laserMax.x, d.x, ref tEnter, ref tExit))
                 return result;
 
-            if (!AxisCheck(worldAMin.y, worldAMax.y, bMin.y, bMax.y, d.y, ref tEnter, ref tExit))
+            if (!CheckIntersectionByAxis(worldAMin.y, worldAMax.y, laserMin.y, laserMax.y, d.y, ref tEnter, ref tExit))
                 return result;
 
-            if (!AxisCheck(worldAMin.z, worldAMax.z, bMin.z, bMax.z, d.z, ref tEnter, ref tExit))
+            if (!CheckIntersectionByAxis(worldAMin.z, worldAMax.z, laserMin.z, laserMax.z, d.z, ref tEnter, ref tExit))
                 return result;
 
             if (tEnter < 0f || tEnter > 1f)
@@ -37,8 +37,8 @@ namespace DefaultNamespace
             result.wasHit = true;
             result.normalizedDistance = tEnter;
 
-            Vector3 pivotHit  = lineStart + d * tEnter;
-            Vector3 centerHit = pivotHit - pivotOffset;
+            var pivotHit  = lineStart + d * tEnter;
+            var centerHit = pivotHit - syringePivotOffset;
 
             result.collisionPoint = centerHit;
 
@@ -46,9 +46,11 @@ namespace DefaultNamespace
         }
 
         
-        static bool AxisCheck(float aMin, float aMax, float bMin, float bMax, float d, ref float tEnter, ref float tExit)
+        static bool CheckIntersectionByAxis(float aMin, float aMax, float bMin, float bMax, float d, ref float tEnter, ref float tExit)
         {
-            if (Mathf.Approximately(d, 0f))
+            const double EPS = 1e-9;
+
+            if (Mathf.Abs(d) < EPS)
             {
                 if (aMax < bMin || aMin > bMax)
                     return false;
@@ -56,11 +58,11 @@ namespace DefaultNamespace
                 return true;
             }
 
-            float t1 = (bMin - aMax) / d;
-            float t2 = (bMax - aMin) / d;
+            var t1 = (bMin - aMax) / d;
+            var t2 = (bMax - aMin) / d;
 
-            float enter = Mathf.Min(t1, t2);
-            float exit  = Mathf.Max(t1, t2);
+            var enter = Mathf.Min(t1, t2);
+            var exit  = Mathf.Max(t1, t2);
 
             tEnter = Mathf.Max(tEnter, enter);
             tExit  = Mathf.Min(tExit,  exit);
@@ -80,10 +82,10 @@ namespace DefaultNamespace
 
             for (var i = 0; i < polyline.Length - 1; i++)
             {
-                Vector3 start = polyline[i];
-                Vector3 end   = polyline[i + 1];
+                var start = polyline[i];
+                var end   = polyline[i + 1];
 
-                var hit = IntersectMovingAABBWithOffset(aMin, aMax, bMin, bMax, start, end, aPivotOffset);
+                var hit = CheckIntersection(aMin, aMax, aPivotOffset, bMin, bMax, start, end);
 
                 if (hit.wasHit)
                 {
